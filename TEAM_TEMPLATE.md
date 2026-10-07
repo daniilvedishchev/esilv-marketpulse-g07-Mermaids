@@ -10,11 +10,11 @@ Copy this file to `TEAM.md` in your team repository and complete it before start
 
 ## Members
 
-| Full name | GitHub username |
-|---|---|
-| Student 1 | @github-user-1 |
-| Student 2 | @github-user-2 |
-| Student 3 | @github-user-3 |
+| Full name | GitHub username   |
+|           |                   |
+| Student 1 | @OUIOUIOUINON     |
+| Student 2 | @daniilvedishchev |
+| Student 3 | @github-user-3    |
 
 Add a fourth row only if your team has four members.
 
