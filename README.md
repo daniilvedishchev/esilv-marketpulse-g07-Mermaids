@@ -1,4 +1,4 @@
-# ESILV MarketPulse
+# ESILV MarketPulse (Improved documention + PR review)
 
 <p align="center">
   <img
