@@ -76,3 +76,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+# MarketPulse : compare une action (AAPL) avec son indice de référence (S&P 500)
