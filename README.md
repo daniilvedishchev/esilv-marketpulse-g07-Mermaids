@@ -1,4 +1,4 @@
-# ESILV MarketPulse
+# ESILV MarketPulse (Improved documention)
 
 <p align="center">
   <img
