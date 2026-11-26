@@ -4,6 +4,7 @@ import csv
 import json
 
 from analytics import *
+from providers.yahoo_provider import *
 
 
 DATA_DIR = Path("data/sample")
@@ -82,59 +83,46 @@ def display_market_summary(asset, prices, show_currency=True):
 
 def main():
 
-    instruments = load_instruments()
-    prices = load_prices()
+    YAHOO_SYMBOLS = {
+        "AAPL": "AAPL",
+        "SP500": "^GSPC",
+    }
 
-    instrument = instruments["instrument"]
-    benchmark = instruments["benchmark"]
+    instrument_prices = fetch_yahoo_prices(
+    symbol=YAHOO_SYMBOLS["AAPL"],
+    canonical_ticker="AAPL",
+    period="1mo",
+    interval="1d",
+    )
 
-    instrument_prices = filter_prices(prices, instrument["ticker"])
-    benchmark_prices = filter_prices(prices, benchmark["ticker"])
+    benchmark_prices = fetch_yahoo_prices(
+    symbol=YAHOO_SYMBOLS["SP500"],
+    canonical_ticker="SP500",
+    period="1mo",
+    interval="1d",
+    )
 
     aligned_instrument, aligned_benchmark = align_series(
         instrument_prices, benchmark_prices
     )
 
-    instrument_return = calculate_period_return(aligned_instrument)
-    benchmark_return = calculate_period_return(aligned_benchmark)
+    assert len(aligned_instrument) > 0, "Instrument is empty"
 
-    relative_performance = calculate_relative_performance(
-        instrument_return, benchmark_return
+    assert len(aligned_benchmark) > 0, "Benchmark is empty"
+
+    assert len(aligned_instrument) == len(aligned_benchmark), \
+    "Different series lengths"
+
+    assert all(
+    instrument["date"] == benchmark["date"]
+    for instrument, benchmark in zip(
+        aligned_instrument, aligned_benchmark
     )
+    ), "Dates do not match"
 
-    instrument_base = calculate_base_100(aligned_instrument)
-    benchmark_base = calculate_base_100(aligned_benchmark)
-
-    print("=== MarketPulse ===")
-
-    print("\nMarket configuration")
-    print(f"Period   : {LOOKBACK_LABEL}")
-    print(f"Interval : {INTERVAL_LABEL}")
-
-    print("\nInstrument")
-    print(f"{instrument['ticker']} - {instrument['name']}")
-    print(f"Period return : {instrument_return:.2f}%")
-
-    print("\nBenchmark")
-    print(f"{benchmark['ticker']} - {benchmark['name']}")
-    print(f"Period return : {benchmark_return:.2f}%")
-
-    print("\nRelative performance")
-    print(f"{instrument['ticker']} vs {benchmark['ticker']} : "
-          f"{relative_performance:+.2f} percentage points")
-
-    print("\nBase 100")
-    print(f"{instrument['ticker']:<6}: "
-          f"{instrument_base[0]['value']:.2f} -> "
-          f"{instrument_base[-1]['value']:.2f}")
-
-    print(f"{benchmark['ticker']:<6}: "
-          f"{benchmark_base[0]['value']:.2f} -> "
-          f"{benchmark_base[-1]['value']:.2f}")
-
+    print("Alignment validation: OK")
 
 if __name__ == "__main__":
     main()
-
 
 
