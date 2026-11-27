@@ -1,10 +1,13 @@
-
 from pathlib import Path
 import csv
 import json
 
 from analytics import *
 from providers.yahoo_provider import *
+from providers.bloomberg_provider import (
+    BLOOMBERG_IDENTIFIERS,
+    fetch_approved_sample_prices,
+)
 
 
 DATA_DIR = Path("data/sample")
@@ -81,48 +84,79 @@ def display_market_summary(asset, prices, show_currency=True):
     print(f"Last close   : {last_close:.2f}{suffix}")
 
 
-def main():
+def build_market_snapshot():
+    instruments = load_instruments()
+    instrument = instruments["instrument"]
+    benchmark = instruments["benchmark"]
 
-    YAHOO_SYMBOLS = {
-        "AAPL": "AAPL",
-        "SP500": "^GSPC",
-    }
-
-    instrument_prices = fetch_yahoo_prices(
-    symbol=YAHOO_SYMBOLS["AAPL"],
-    canonical_ticker="AAPL",
-    period="1mo",
-    interval="1d",
+    instrument_prices = fetch_approved_sample_prices(
+        BLOOMBERG_IDENTIFIERS["AAPL"]
     )
-
-    benchmark_prices = fetch_yahoo_prices(
-    symbol=YAHOO_SYMBOLS["SP500"],
-    canonical_ticker="SP500",
-    period="1mo",
-    interval="1d",
+    benchmark_prices = fetch_approved_sample_prices(
+        BLOOMBERG_IDENTIFIERS["SP500"]
     )
 
     aligned_instrument, aligned_benchmark = align_series(
         instrument_prices, benchmark_prices
     )
 
-    assert len(aligned_instrument) > 0, "Instrument is empty"
+    instrument_return = calculate_period_return(aligned_instrument)
+    benchmark_return = calculate_period_return(aligned_benchmark)
 
-    assert len(aligned_benchmark) > 0, "Benchmark is empty"
+    return {
+        "provider": "Bloomberg stage",
+        "access_mode": "APPROVED_SAMPLE",
+        "lookback": LOOKBACK_LABEL,
+        "interval": INTERVAL_LABEL,
+        "instrument": instrument,
+        "benchmark": benchmark,
+        "instrument_return": instrument_return,
+        "benchmark_return": benchmark_return,
+        "relative_performance": calculate_relative_performance(
+            instrument_return, benchmark_return
+        ),
+        "instrument_base_100": calculate_base_100(aligned_instrument),
+        "benchmark_base_100": calculate_base_100(aligned_benchmark),
+    }
 
-    assert len(aligned_instrument) == len(aligned_benchmark), \
-    "Different series lengths"
 
-    assert all(
-    instrument["date"] == benchmark["date"]
-    for instrument, benchmark in zip(
-        aligned_instrument, aligned_benchmark
-    )
-    ), "Dates do not match"
+def main():
+    snapshot = build_market_snapshot()
 
-    print("Alignment validation: OK")
+    instrument = snapshot["instrument"]
+    benchmark = snapshot["benchmark"]
+    instrument_base = snapshot["instrument_base_100"]
+    benchmark_base = snapshot["benchmark_base_100"]
+
+    print("=== MarketPulse ===")
+
+    print("\nProvider")
+    print(snapshot["provider"])
+
+    print("\nAccess mode")
+    print(snapshot["access_mode"])
+
+    print("\nMarket configuration")
+    print(f"Instrument : {instrument['ticker']} - {instrument['name']}")
+    print(f"Benchmark  : {benchmark['name']}")
+    print(f"Period     : {snapshot['lookback']}")
+    print(f"Interval   : {snapshot['interval']}")
+
+    print(f"\nInstrument return : {snapshot['instrument_return']:.2f}%")
+    print(f"Benchmark return  : {snapshot['benchmark_return']:.2f}%")
+
+    print("\nRelative performance")
+    print(f"{instrument['ticker']} vs {benchmark['ticker']} : "
+          f"{snapshot['relative_performance']:+.2f} percentage points")
+
+    print("\nBase 100")
+    print(f"{instrument['ticker']:<6}: "
+          f"{instrument_base[0]['value']:.2f} -> "
+          f"{instrument_base[-1]['value']:.2f}")
+    print(f"{benchmark['ticker']:<6}: "
+          f"{benchmark_base[0]['value']:.2f} -> "
+          f"{benchmark_base[-1]['value']:.2f}")
+
 
 if __name__ == "__main__":
     main()
-
-
